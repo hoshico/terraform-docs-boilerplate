@@ -2,6 +2,12 @@
 
 AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント（CSV・draw.io・SVG）を同一リポジトリで生成・管理するためのボイラープレート。
 
+## 通信構成図
+
+`requirements/communication.yaml` から自動生成している。
+
+![AWS Communication Diagram](docs/diagrams/communication.svg)
+
 ## ディレクトリ構成
 
 ```

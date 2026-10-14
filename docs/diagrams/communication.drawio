@@ -1,0 +1,25 @@
+<mxfile>
+  <diagram id="communication" name="communication">
+    <mxGraphModel grid="1" gridSize="10" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="resource-alb" value="Application Load Balancer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=8;html=0;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_load_balancing;" vertex="1" parent="1">
+          <mxGeometry x="120" y="40" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="resource-ecs" value="ECS Application" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=8;html=0;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;" vertex="1" parent="1">
+          <mxGeometry x="120" y="220" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="resource-rds" value="PostgreSQL" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=8;html=0;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;" vertex="1" parent="1">
+          <mxGeometry x="120" y="400" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="communication-alb-to-ecs" value="TCP 3000" style="endArrow=block;endFill=1;html=0;fontSize=12;strokeColor=#232F3E;fontColor=#232F3E;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="resource-alb" target="resource-ecs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="communication-ecs-to-rds" value="TCP 5432" style="endArrow=block;endFill=1;html=0;fontSize=12;strokeColor=#232F3E;fontColor=#232F3E;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="resource-ecs" target="resource-rds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
