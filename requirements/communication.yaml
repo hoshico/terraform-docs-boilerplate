@@ -2,20 +2,68 @@
 #
 # 通信要件の正本。Terraform・CSV・構成図はすべてこのファイルから生成する。
 
+network:
+  region: ap-northeast-1
+  vpc:
+    label: VPC
+    cidr: 10.0.0.0/16
+  availability_zones:
+    - ap-northeast-1a
+    - ap-northeast-1c
+  # 構成図では上から順に並べる。cidrs は availability_zones と同じ順序で指定する
+  subnets:
+    - id: public
+      label: Public subnet
+      type: public
+      cidrs: [10.0.0.0/24, 10.0.1.0/24]
+
+    - id: private-app
+      label: Private subnet (App)
+      type: private
+      cidrs: [10.0.10.0/24, 10.0.11.0/24]
+
+    - id: private-db
+      label: Private subnet (DB)
+      type: private
+      cidrs: [10.0.20.0/24, 10.0.21.0/24]
+
+# subnet を省略したリソースは VPC 外として扱う
+# layout:
+#   single          : 先頭の AZ に 1 つ配置（省略時）
+#   span            : AZ をまたいで 1 つ配置（ALB など）
+#   per_az          : 各 AZ に 1 つずつ配置（ECS タスクなど）
+#   primary_standby : 先頭の AZ に Primary、2 番目の AZ に Standby を配置（RDS Multi-AZ など）
 resources:
+  users:
+    type: users
+    label: Users
+
   alb:
     type: aws_alb
     label: Application Load Balancer
+    subnet: public
+    layout: span
 
   ecs:
     type: aws_ecs
-    label: ECS Application
+    label: ECS Service (Fargate)
+    subnet: private-app
+    layout: per_az
 
   rds:
     type: aws_rds
-    label: PostgreSQL
+    label: RDS for PostgreSQL
+    subnet: private-db
+    layout: primary_standby
 
 communications:
+  - id: users-to-alb
+    source: users
+    destination: alb
+    protocol: tcp
+    port: 443
+    description: 利用者からALBへのHTTPS通信
+
   - id: alb-to-ecs
     source: alb
     destination: ecs
