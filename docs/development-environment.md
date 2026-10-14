@@ -3,7 +3,7 @@
 Mac / Windows / CI（GitHub Actions）でツールのバージョン差異を出さないための方針。
 
 > ステータス：mise / uv を導入済み（`mise.toml`, `pyproject.toml`, `uv.lock`）。
-> Terraform の lock ファイル・`.gitattributes` は未作成。
+> `.gitattributes` 作成済み。Terraform の lock ファイルは未作成。
 
 ## 前提
 

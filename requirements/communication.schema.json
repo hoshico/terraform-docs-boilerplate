@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Communication Requirements",
+  "type": "object",
+  "required": ["resources", "communications"],
+  "additionalProperties": false,
+  "properties": {
+    "resources": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/logicalId" },
+      "additionalProperties": { "$ref": "#/$defs/resource" }
+    },
+    "communications": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/communication" }
+    }
+  },
+  "$defs": {
+    "logicalId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "resource": {
+      "type": "object",
+      "required": ["type", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^aws_[a-z0-9_]+$",
+          "description": "構成図のアイコン判定に使うリソースタイプ"
+        },
+        "label": { "type": "string", "minLength": 1 }
+      }
+    },
+    "communication": {
+      "type": "object",
+      "required": ["id", "source", "destination", "protocol", "port", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/logicalId" },
+        "source": { "$ref": "#/$defs/logicalId" },
+        "destination": { "$ref": "#/$defs/logicalId" },
+        "protocol": { "enum": ["tcp", "udp"] },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
