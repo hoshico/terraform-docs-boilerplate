@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=./communication.schema.json
+#
+# 通信要件の正本。Terraform・CSV・構成図はすべてこのファイルから生成する。
+
+resources:
+  alb:
+    type: aws_alb
+    label: Application Load Balancer
+
+  ecs:
+    type: aws_ecs
+    label: ECS Application
+
+  rds:
+    type: aws_rds
+    label: PostgreSQL
+
+communications:
+  - id: alb-to-ecs
+    source: alb
+    destination: ecs
+    protocol: tcp
+    port: 3000
+    description: ALBからECSへのアプリケーション通信
+
+  - id: ecs-to-rds
+    source: ecs
+    destination: rds
+    protocol: tcp
+    port: 5432
+    description: ECSからRDSへのデータベース接続

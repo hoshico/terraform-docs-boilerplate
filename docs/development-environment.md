@@ -2,7 +2,8 @@
 
 Mac / Windows / CI（GitHub Actions）でツールのバージョン差異を出さないための方針。
 
-> ステータス：方針のみ決定。各設定ファイルは未作成。
+> ステータス：mise / uv を導入済み（`mise.toml`, `pyproject.toml`, `uv.lock`）。
+> `.gitattributes` 作成済み。Terraform の lock ファイルは未作成。
 
 ## 前提
 
@@ -27,8 +28,8 @@ Mac / Windows / CI（GitHub Actions）でツールのバージョン差異を出
 # mise.toml
 [tools]
 terraform = "1.16.4"
-python = "3.12"
-uv = "<固定するバージョン>"
+python = "3.12.15"
+uv = "0.13.1"
 ```
 
 インストール：
@@ -40,6 +41,7 @@ winget install jdx.mise
 brew install mise
 
 # リポジトリ直下で
+mise trust
 mise install
 ```
 
@@ -53,12 +55,24 @@ CI では `jdx/mise-action` を使い、同じ `mise.toml` を読み込む。
 # pyproject.toml
 [project]
 name = "terraform-docs-boilerplate"
-requires-python = ">=3.12"
-dependencies = ["pyyaml", "yamllint", "check-jsonschema"]
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pyyaml>=6.0.3",           # 生成スクリプトが使用
+]
+
+[dependency-groups]
+dev = [
+    "check-jsonschema>=0.38.2", # 検証用 CLI
+    "yamllint>=1.38.0",
+]
+
+[tool.uv]
+package = false
 ```
 
 ```sh
-uv sync                                   # 依存のインストール
+uv sync                                   # 依存のインストール（dev グループ含む）
 uv run python scripts/generate_csv.py     # スクリプト実行
 uv run yamllint requirements/
 ```
@@ -102,7 +116,7 @@ uv run yamllint requirements/
 draw.io は mise / uv で管理できず、バージョンにより SVG 出力が変わる可能性がある。
 
 - SVG の生成と差分チェックは CI（固定バージョン）でのみ行う
-- ローカルでの SVG 生成は確認用とする
+- ローカルでの SVG 生成は確認用とする（Mac で確認済みのバージョン：32.4.1）
 - ローカルでもバージョンを揃える場合は、推奨バージョンを指定してインストールする
 
   ```sh

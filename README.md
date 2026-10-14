@@ -1,14 +1,24 @@
 # terraform-docs-boilerplate
 
-AWS インフラを Terraform で構築し、要件・設計ドキュメント・構成図を同一リポジトリで管理するためのボイラープレート。
+AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント（CSV・draw.io・SVG）を同一リポジトリで生成・管理するためのボイラープレート。
+
+## 通信構成図
+
+`requirements/communication.yaml` から自動生成している。
+
+![AWS Communication Diagram](docs/diagrams/communication.svg)
 
 ## ディレクトリ構成
 
 ```
 terraform-docs-boilerplate
-├── requirements/   # 要件定義（機能・非機能要件）
+├── requirements/   # 通信要件 YAML（正本）と JSON Schema
 ├── terraform/      # Terraform コード
+├── scripts/        # 検証・生成用 Python スクリプト
 ├── docs/           # 設計書・運用手順書
-├── diagrams/       # 構成図（draw.io / PlantUML / Mermaid など）
+│   ├── diagrams/   # 構成図（自動生成）
+│   └── tables/     # 通信要件一覧 CSV（自動生成）
 └── .github/        # GitHub Actions・PR テンプレート
 ```
+
+詳細な方針は [AGENTS.md](AGENTS.md)、開発環境は [docs/development-environment.md](docs/development-environment.md) を参照。

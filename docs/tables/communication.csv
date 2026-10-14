@@ -1,0 +1,3 @@
+﻿ID,Source,Destination,Protocol,Port,Description
+alb-to-ecs,alb,ecs,tcp,3000,ALBからECSへのアプリケーション通信
+ecs-to-rds,ecs,rds,tcp,5432,ECSからRDSへのデータベース接続
