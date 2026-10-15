@@ -3,7 +3,8 @@
 JSON Schema では検証しにくい以下の項目を確認する。
 
 - 通信 ID・サブネット ID の重複
-- 未定義の source / destination / subnet
+- 未定義の source / destination / via / subnet
+- VPC 外のリソースを via に指定している
 - source と destination が同一の通信
 - サブネットの cidrs の数と AZ の数の不一致
 - layout とサブネット・AZ 数の組み合わせ
@@ -65,6 +66,15 @@ def validate_communications(data: dict) -> list[str]:
 
         if comm["source"] == comm["destination"]:
             errors.append(f"{comm_id}: source と destination が同じです")
+
+        via = comm.get("via")
+        if via is not None:
+            if via not in resource_ids:
+                errors.append(f"{comm_id}: via '{via}' が resources に定義されていません")
+            elif "subnet" not in data["resources"][via]:
+                errors.append(f"{comm_id}: via '{via}' は VPC 内（subnet を持つ）リソースである必要があります")
+            if via in (comm["source"], comm["destination"]):
+                errors.append(f"{comm_id}: via に source / destination と同じリソースは指定できません")
 
     return errors
 

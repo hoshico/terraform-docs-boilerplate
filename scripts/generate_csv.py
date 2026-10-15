@@ -14,7 +14,7 @@ from validate_communication import DEFAULT_PATH, validate
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_PATH = ROOT / "docs" / "tables" / "communication.csv"
 
-HEADER = ["ID", "Source", "Destination", "Protocol", "Port", "Description"]
+HEADER = ["ID", "Source", "Destination", "Via", "Protocol", "Port", "Description"]
 
 
 def main() -> int:
@@ -34,6 +34,7 @@ def main() -> int:
                 comm["id"],
                 comm["source"],
                 comm["destination"],
+                comm.get("via", ""),
                 comm["protocol"],
                 comm["port"],
                 comm["description"],

@@ -17,7 +17,7 @@
 
 ### resources の配置
 
-`subnet` を省略したリソース（Users など）は VPC 外に配置する。
+`subnet` を省略したリソース（`type: users` / `type: internet` など）は VPC 外に配置する。
 
 | `layout` | 配置 | 例 |
 |---|---|---|
@@ -27,6 +27,21 @@
 | `primary_standby` | 先頭の AZ に Primary、2 番目の AZ に Standby | RDS Multi-AZ |
 
 `primary_standby` のリソースへの通信は Primary にのみ向ける。Primary・Standby 間のレプリケーションは AWS 管理の通信のため、通信要件には含めず構成図に点線で示す。
+
+### communications の via
+
+NAT Gateway のように、Security Group で制御しない中継点を経由する通信は `via` で指定する。
+
+```yaml
+- id: ecs-to-aws-services
+  source: ecs
+  destination: aws-services
+  via: nat
+  protocol: tcp
+  port: 443
+```
+
+`via` には VPC 内（`subnet` を持つ）リソースを指定する。構成図では `source -> via -> destination` の 2 本の矢印で描く。
 
 ## 検証
 

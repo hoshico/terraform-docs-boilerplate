@@ -27,7 +27,7 @@ network:
       type: private
       cidrs: [10.0.20.0/24, 10.0.21.0/24]
 
-# subnet を省略したリソースは VPC 外として扱う
+# subnet を省略したリソースは VPC 外として扱う（Users・インターネット上のサービスなど）
 # layout:
 #   single          : 先頭の AZ に 1 つ配置（省略時）
 #   span            : AZ をまたいで 1 つ配置（ALB など）
@@ -38,11 +38,21 @@ resources:
     type: users
     label: Users
 
+  aws-services:
+    type: internet
+    label: AWS services (ECR / CloudWatch Logs)
+
   alb:
     type: aws_alb
     label: Application Load Balancer
     subnet: public
     layout: span
+
+  nat:
+    type: aws_nat_gateway
+    label: NAT gateway
+    subnet: public
+    layout: per_az
 
   ecs:
     type: aws_ecs
@@ -77,3 +87,12 @@ communications:
     protocol: tcp
     port: 5432
     description: ECSからRDSへのデータベース接続
+
+  # via: 経由するリソース。NAT Gateway など、Security Group で制御しない中継点を指定する
+  - id: ecs-to-aws-services
+    source: ecs
+    destination: aws-services
+    via: nat
+    protocol: tcp
+    port: 443
+    description: ECSからNAT Gateway経由でECR・CloudWatch LogsへのHTTPS通信

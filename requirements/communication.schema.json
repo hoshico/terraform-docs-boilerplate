@@ -78,7 +78,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "pattern": "^(aws_[a-z0-9_]+|users)$",
+          "pattern": "^(aws_[a-z0-9_]+|users|internet)$",
           "description": "構成図のアイコン判定に使うリソースタイプ"
         },
         "label": { "type": "string", "minLength": 1 },
@@ -100,6 +100,10 @@
         "id": { "$ref": "#/$defs/logicalId" },
         "source": { "$ref": "#/$defs/logicalId" },
         "destination": { "$ref": "#/$defs/logicalId" },
+        "via": {
+          "$ref": "#/$defs/logicalId",
+          "description": "経由するリソース（NAT Gateway など）"
+        },
         "protocol": { "enum": ["tcp", "udp"] },
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
         "description": { "type": "string", "minLength": 1 }

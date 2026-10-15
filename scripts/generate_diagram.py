@@ -2,6 +2,7 @@
 
 Region > VPC > AZ > サブネットの枠を描き、resources を subnet / layout に従って配置する。
 subnet を持たないリソース（Users など）は Region の上に並べる。
+via を持つ通信は「source -> via -> destination」の 2 本の矢印で描く。
 矢印と重ならないよう、リソース名はアイコンの右側に表示する。
 """
 
@@ -27,7 +28,9 @@ SERVICE_ICONS = {
 }
 # リソースタイプ -> (シェイプ名, 色)。背景なしのアイコンとして描く
 PLAIN_ICONS = {
+    "aws_nat_gateway": ("nat_gateway", "#8C4FFF"),
     "users": ("users", "#232F3D"),
+    "internet": ("internet", "#232F3D"),
 }
 
 LABEL_RIGHT = "labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=8;"
@@ -51,7 +54,8 @@ SUBNET_STYLES = {
     "public": GROUP_BASE + "grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#7AA116;fillColor=#F2F6E8;fontColor=#248814;",
     "private": GROUP_BASE + "grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#00A4A6;fillColor=#E6F6F7;fontColor=#147EBA;",
 }
-AZ_STYLE = "fillColor=none;strokeColor=#147EBA;dashed=1;verticalAlign=top;fontStyle=0;fontColor=#147EBA;whiteSpace=wrap;html=0;"
+# AZ 名は左寄せにして、上方向へ伸びる矢印と重ならないようにする
+AZ_STYLE = "fillColor=none;strokeColor=#147EBA;dashed=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=0;fontColor=#147EBA;whiteSpace=wrap;html=0;"
 
 EDGE_STYLE = (
     "endArrow=block;endFill=1;html=0;fontSize=12;"
@@ -67,7 +71,8 @@ ICON = 60
 MARGIN = 40
 EXTERNAL_Y = 20
 EXTERNAL_STEP = 220
-REGION_Y = 150
+EXTERNAL_LANE_Y = 120
+REGION_Y = 200
 GROUP_PAD = 30
 GROUP_HEADER = 40
 VPC_HEADER = 50
@@ -189,19 +194,13 @@ def build_diagram(data: dict) -> ET.ElementTree:
 
     # リソースをノードに展開する
     nodes: dict[str, list[Node]] = {}
-    externals = [rid for rid, r in data["resources"].items() if "subnet" not in r]
     slot_in_subnet: dict[str, int] = {}
 
     for resource_id, resource in data["resources"].items():
+        if "subnet" not in resource:
+            continue
         style = resource_style(resource["type"])
         label = resource["label"]
-
-        if "subnet" not in resource:
-            j = externals.index(resource_id)
-            x = vpc.cx - ICON / 2 + (j - (len(externals) - 1) / 2) * EXTERNAL_STEP
-            nodes[resource_id] = [Node(f"resource-{resource_id}", label, style, Box(x, EXTERNAL_Y, ICON, ICON), None, None)]
-            continue
-
         row = subnet_rows[resource["subnet"]]
         layout = resource.get("layout", "single")
 
@@ -229,6 +228,53 @@ def build_diagram(data: dict) -> ET.ElementTree:
         else:
             nodes[resource_id] = [Node(f"resource-{resource_id}", label, style, place(0), 0, row)]
 
+    # VPC 外のリソース。via 経由で到達する宛先は、最後の経由ノードの真上に置く。
+    # それ以外（Users など）は VPC の中央上（Internet Gateway の真上）に並べる
+    via_targets = {c["destination"]: c["via"] for c in data["communications"] if "via" in c}
+    centered = [
+        rid for rid, r in data["resources"].items() if "subnet" not in r and rid not in via_targets
+    ]
+    for resource_id, resource in data["resources"].items():
+        if "subnet" in resource:
+            continue
+        if resource_id in via_targets:
+            x = nodes[via_targets[resource_id]][-1].box.x
+        else:
+            j = centered.index(resource_id)
+            x = vpc.cx - ICON / 2 + (j - (len(centered) - 1) / 2) * EXTERNAL_STEP
+        box = Box(x, EXTERNAL_Y, ICON, ICON)
+        nodes[resource_id] = [Node(f"resource-{resource_id}", resource["label"], resource_style(resource["type"]), box, None, None)]
+
+    def route(s: Node, t: Node) -> tuple[str, list[tuple[float, float]] | None]:
+        """矢印の接続位置と経由点を返す。横位置が異なる場合は、行間の隙間を通して直角に結ぶ。"""
+        if t.row is None:
+            # VPC 外（上）へ向かう
+            style = "exitX=0.5;exitY=0;entryX=0.5;entryY=1;"
+            if s.box.cx == t.box.cx:
+                return style, None
+            return style, [(s.box.cx, EXTERNAL_LANE_Y), (t.box.cx, EXTERNAL_LANE_Y)]
+        if s.row is not None and t.row < s.row:
+            # 上の行へ向かう
+            style = "exitX=0.5;exitY=0;entryX=0.5;entryY=1;"
+            if s.box.cx == t.box.cx:
+                return style, None
+            gap_y = subnet_box(t.row, 0).y + SUBNET_H + SUBNET_GAP / 2
+            return style, [(s.box.cx, gap_y), (t.box.cx, gap_y)]
+        # 下の行へ向かう
+        if s.box.cx == t.box.cx:
+            return "", None
+        # 上辺の中央は上向きの矢印が使うことがあるため、左寄りに入れる
+        entry_x = t.box.x + ICON * 0.25
+        gap_y = subnet_box(t.row, 0).y - SUBNET_GAP / 2
+        return "exitX=0.5;exitY=1;entryX=0.25;entryY=0;", [(s.box.cx, gap_y), (entry_x, gap_y)]
+
+    def pair(sources: list[Node], targets: list[Node]) -> list[tuple[Node, Node]]:
+        # 両端が AZ ごとに配置されている場合は同じ AZ 同士だけを結ぶ
+        return [
+            (s, t) for s in sources for t in targets
+            if not (len(sources) > 1 and len(targets) > 1 and s.az != t.az)
+        ]
+
     diagram = Diagram()
 
     # 1. 枠（背面）
@@ -252,24 +298,25 @@ def build_diagram(data: dict) -> ET.ElementTree:
         if data["resources"][comm["destination"]].get("layout") == "primary_standby":
             targets = targets[:1]
 
-        pairs = [
-            (s, t) for s in sources for t in targets
-            # 両端が AZ ごとに配置されている場合は同じ AZ 同士だけを結ぶ
-            if not (len(sources) > 1 and len(targets) > 1 and s.az != t.az)
-        ]
         label = f"{comm['protocol'].upper()} {comm['port']}"
-        # VPC 外からの通信は Internet Gateway と重ならないよう、ラベルを始点寄りにする
-        label_pos = -0.6 if "subnet" not in data["resources"][comm["source"]] else 0
-        for s, t in pairs:
-            style, points = EDGE_STYLE, None
-            # 横位置が異なる場合は、サブネット名と重ならないよう行間の隙間を通して直角に結ぶ
-            if s.box.cx != t.box.cx and t.row is not None:
-                gap_y = subnet_box(t.row, 0).y - SUBNET_GAP / 2
-                style += "exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
-                points = [(s.box.cx, gap_y), (t.box.cx, gap_y)]
+
+        if "via" in comm:
+            # source -> via にラベルを付け、via -> destination はラベルなしで描く。
+            # ラベルは via 寄りに置き、行間を通る他の矢印と重ならないようにする
+            via_nodes = nodes[comm["via"]]
+            legs = [(s, v, label, 0.5) for s, v in pair(sources, via_nodes)]
+            used_vias = [v for v in via_nodes if any(leg[1] is v for leg in legs)]
+            legs += [(v, t, "", 0) for v, t in pair(used_vias, targets)]
+        else:
+            # VPC 外からの通信は Internet Gateway と重ならないよう、ラベルを始点寄りにする
+            label_pos = -0.6 if "subnet" not in data["resources"][comm["source"]] else 0
+            legs = [(s, t, label, label_pos) for s, t in pair(sources, targets)]
+
+        for s, t, leg_label, label_pos in legs:
+            style, points = route(s, t)
             diagram.edge(
                 f"communication-{comm['id']}-{s.cell_id}-{t.cell_id}",
-                label, style, s.cell_id, t.cell_id, label_pos, points,
+                leg_label, EDGE_STYLE + style, s.cell_id, t.cell_id, label_pos, points,
             )
 
     # Multi-AZ のレプリケーション（通信要件ではなく AWS 管理の通信のため、点線で示す）
