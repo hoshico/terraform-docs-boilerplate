@@ -7,7 +7,7 @@
 | スクリプト | 内容 |
 |---|---|
 | `validate_communication.py` | 通信要件 YAML の整合性チェック（ID 重複・未定義参照など） |
-| `generate_csv.py` | 通信要件一覧 CSV（`docs/tables/communication.csv`）を生成 |
+| `generate_csv.py` | 通信要件一覧 CSV（`docs/tables/communication.csv`）を生成し、README.md の通信要件一覧の表を更新 |
 | `generate_diagram.py` | 構成図（`docs/diagrams/communication.drawio`）を生成 |
 | `export_svg.py` | draw.io CLI で構成図を SVG（`docs/diagrams/communication.svg`）に出力 |
 

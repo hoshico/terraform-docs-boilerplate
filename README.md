@@ -8,6 +8,19 @@ AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント
 
 ![AWS Communication Diagram](docs/diagrams/communication.svg)
 
+## 通信要件一覧
+
+`requirements/communication.yaml` から自動生成している。CSV 版：[docs/tables/communication.csv](docs/tables/communication.csv)
+
+<!-- BEGIN: communication-table (自動生成のため直接編集しない) -->
+| ID | Source | Destination | Via | Protocol | Port | Description |
+|---|---|---|---|---|---|---|
+| users-to-alb | users | alb |  | tcp | 443 | 利用者からALBへのHTTPS通信 |
+| alb-to-ecs | alb | ecs |  | tcp | 3000 | ALBからECSへのアプリケーション通信 |
+| ecs-to-rds | ecs | rds |  | tcp | 5432 | ECSからRDSへのデータベース接続 |
+| ecs-to-aws-services | ecs | aws-services | nat | tcp | 443 | ECSからNAT Gateway経由でECR・CloudWatch LogsへのHTTPS通信 |
+<!-- END: communication-table -->
+
 ## ディレクトリ構成
 
 ```
