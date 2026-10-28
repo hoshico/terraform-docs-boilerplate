@@ -1,10 +1,10 @@
 # terraform-docs-boilerplate
 
-AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント（CSV・draw.io・SVG）を同一リポジトリで生成・管理するためのボイラープレート。
+AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント（CSV・draw.io・SVG）を同一リポジトリで管理するためのボイラープレート。
 
 ## 通信構成図
 
-`requirements/communication.yaml` から自動生成している。
+`requirements/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。編集規約は [docs/diagrams/AGENTS.md](docs/diagrams/AGENTS.md) を参照する。
 
 ![AWS Communication Diagram](docs/diagrams/communication.svg)
 
@@ -29,7 +29,7 @@ terraform-docs-boilerplate
 ├── terraform/      # Terraform コード
 ├── scripts/        # 検証・生成用 Python スクリプト
 ├── docs/           # 設計書・運用手順書
-│   ├── diagrams/   # 構成図（自動生成）
+│   ├── diagrams/   # 構成図（AI が YAML を基に編集）
 │   └── tables/     # 通信要件一覧 CSV（自動生成）
 └── .github/        # GitHub Actions・PR テンプレート
 ```

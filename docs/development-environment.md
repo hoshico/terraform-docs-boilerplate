@@ -18,7 +18,7 @@ Mac / Windows / CI（GitHub Actions）でツールのバージョン差異を出
 | Python ライブラリ | uv | `pyproject.toml`, `uv.lock` |
 | Terraform プロバイダ | lock ファイル | `.terraform.lock.hcl` |
 | 改行コード | Git | `.gitattributes` |
-| draw.io | CI で固定 / ローカルは推奨バージョンを記載 | なし |
+| draw.io | ローカルで使用するバージョンを記載 | なし |
 
 ## 1. CLI ツール：mise
 
@@ -113,10 +113,10 @@ uv run yamllint requirements/
 
 ## 5. draw.io
 
-draw.io は mise / uv で管理できず、バージョンにより SVG 出力が変わる可能性がある。
+draw.io は mise / uv で管理できず、バージョンにより SVG 出力が変わる可能性がある。構成図はスクリプトで生成せず、AI が `requirements/communication.yaml` を正本として編集する。編集規約は `docs/diagrams/AGENTS.md` を参照する。
 
-- SVG の生成と差分チェックは CI（固定バージョン）でのみ行う
-- ローカルでの SVG 生成は確認用とする（Mac で確認済みのバージョン：32.4.1）
+- SVG の生成はローカルで行い、変更内容をレビューする
+- ローカルで SVG を確認する場合は、Mac で確認済みのバージョン（32.4.1）を使用する
 - ローカルでもバージョンを揃える場合は、推奨バージョンを指定してインストールする
 
   ```sh

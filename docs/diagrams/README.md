@@ -1,12 +1,12 @@
 # diagrams
 
-`requirements/communication.yaml` から自動生成される構成図（draw.io / SVG）を配置するディレクトリ。
+`requirements/communication.yaml` を正本とする構成図（draw.io / SVG）を配置するディレクトリ。
 
-生成物のため直接編集しない。
+`communication.drawio` は AI が YAML を参照して編集する。編集時は必ず [AGENTS.md](AGENTS.md) のスタイルと整合性の規約に従う。
 
-| ファイル | 生成コマンド |
+| ファイル | 更新方法 |
 |---|---|
-| `communication.drawio` | `uv run python scripts/generate_diagram.py` |
+| `communication.drawio` | AI が YAML と `AGENTS.md` を基に編集 |
 | `communication.svg` | `uv run python scripts/export_svg.py`（draw.io デスクトップが必要） |
 
-SVG は draw.io のバージョンにより出力が変わる可能性がある。差分チェックは CI（固定バージョン）で行う。
+SVG は draw.io のバージョンにより出力が変わる可能性がある。`communication.drawio` を変更したら SVG を更新し、内容と表示を確認する。

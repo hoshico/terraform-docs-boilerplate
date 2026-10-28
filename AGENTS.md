@@ -3,7 +3,7 @@
 ## 1. プロジェクト概要
 
 このリポジトリは、AWSインフラの通信要件をコードとして管理し、
-Terraformによるインフラ構築と設計ドキュメントの自動生成を実現する
+Terraformによるインフラ構築と、設計ドキュメントの自動生成・AI編集を実現する
 ボイラープレートです。
 
 主な目的は以下のとおりです。
@@ -11,8 +11,8 @@ Terraformによるインフラ構築と設計ドキュメントの自動生成�
 - AWSの通信要件をGitHubで一元管理する
 - 通信要件をYAMLで定義する
 - YAMLからTerraformの設定を生成・反映する
-- YAMLからAWS構成図（draw.io）を自動生成する
-- draw.ioからSVGを生成し、GitHub上で閲覧できるようにする
+- YAMLを正本として、AIがAWS構成図（draw.io）を編集する
+- draw.ioからSVGを出力し、GitHub上で閲覧できるようにする
 - YAMLから通信要件一覧（CSV）を生成する
 - GitHub Actionsで検証と生成処理を自動化する
 - Terraformと設計ドキュメントを同じリポジトリで管理する
@@ -34,7 +34,7 @@ Terraformと設計ドキュメントの整合性を維持できる構成を目�
 | AWS構成図 | draw.io（diagrams.net） |
 | 図の表示形式 | SVG |
 | 通信要件一覧 | CSV |
-| 自動生成スクリプト | Python |
+| 検証・CSV生成スクリプト | Python |
 | CI/CD | GitHub Actions |
 | バージョン管理 | Git / GitHub |
 
@@ -67,7 +67,9 @@ Communication Requirements (YAML)
                 |     +-- Security Groups
                 |
                 +-- Python
-                      +-- CSV
+                |     +-- CSV
+                |
+                +-- AI
                       +-- draw.io
                              +-- SVG
 ```
@@ -97,17 +99,15 @@ YAMLの通信要件をもとに、必要なSecurity Groupルールなどを作�
 
 通信要件とAWSリソースの対応を明確にすること。
 
-### 3.3 設計ドキュメントは自動生成する
+### 3.3 設計ドキュメントを管理する
 
-通信要件YAMLから以下を生成する。
+通信要件YAMLを基に、以下の設計ドキュメントを管理する。
 
-1. CSV形式の通信要件一覧
-2. AWS公式アイコンを使用したdraw.io構成図
-3. GitHub上で表示するSVG
+1. CSV形式の通信要件一覧（自動生成）
+2. AWS公式アイコンを使用したdraw.io構成図（AIが編集）
+3. GitHub上で表示するSVG（draw.ioから出力）
 
-生成されたファイルは原則として直接編集しない。
-
-変更が必要な場合は、元となるYAMLまたは生成処理を修正する。
+CSV は自動生成するため直接編集しない。draw.io 図は `docs/diagrams/AGENTS.md` の規約に従って AI が編集し、変更後に SVG を出力する。
 
 ---
 
@@ -131,7 +131,6 @@ YAMLの通信要件をもとに、必要なSecurity Groupルールなどを作�
 │   └── versions.tf
 │
 ├── scripts/
-│   ├── generate_diagram.py
 │   └── generate_csv.py
 │
 ├── docs/
@@ -244,105 +243,21 @@ JSON Schemaだけでは検証が難しい項目については、
 
 ---
 
-## 7. draw.io生成
+## 7. draw.io 編集と SVG 出力
 
-### 7.1 基本方針
+`requirements/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。Python スクリプトで draw.io XML を自動生成しない。
 
-Pythonを使用して、通信要件YAMLからdraw.io形式のXMLを生成する。
+AI は `docs/diagrams/AGENTS.md` の規約に従い、AWS4 アイコン、配色、レイアウト、通信線のスタイルを維持する。YAML にないリソースや通信を図へ追加しない。
 
-draw.ioではAWSのアーキテクチャアイコンを使用する。
-
-対象例：
-
-- Application Load Balancer
-- Amazon ECS
-- Amazon RDS
-- Amazon EC2
-- Amazon S3
-- Amazon VPC
-
-### 7.2 AWSアイコン
-
-AWS公式のArchitecture Iconsを使用する。
-
-https://aws.amazon.com/architecture/icons/
-
-draw.ioのAWSアイコンライブラリを利用する方法も検討する。
-
-アイコンの識別子はリソースタイプから判定する。
-
-例：
-
-```text
-aws_alb -> ALB icon
-aws_ecs -> ECS icon
-aws_rds -> RDS icon
-```
-
-draw.ioのXML生成時には、使用するアイコンのスタイル識別子を確認すること。
-
-### 7.3 レイアウト
-
-初期PoCでは、上から下への単純なレイアウトとする。
-
-```text
-ALB
- |
- v
-ECS
- |
- v
-RDS
-```
-
-将来的には以下を検討する。
-
-- VPCの枠
-- Public / Private Subnet
-- Availability Zone
-- 通信方向
-- ポート番号
-- 環境別の構成図
-
-ただし、初期段階では自動レイアウトの高度化を優先しない。
-
----
-
-## 8. SVG生成
-
-draw.ioファイルからSVGを生成する。
-
-基本フロー：
-
-```text
-communication.yaml
-        |
-        v
-generate_diagram.py
-        |
-        v
-communication.drawio
-        |
-        v
-draw.io CLI
-        |
-        v
-communication.svg
-```
-
-draw.io CLIなどを使用してエクスポートする。
-
-生成したSVGはGitHubのREADMEから参照する。
+図を更新したら、draw.io から `docs/diagrams/communication.svg` を出力する。SVG は GitHub の README から参照する。
 
 ```markdown
 ![AWS Communication Diagram](docs/diagrams/communication.svg)
 ```
 
-AWSアイコンがSVGに正しく出力されることを確認する。
-
 ---
 
-## 9. CSV生成
+## 8. CSV生成
 
 YAMLのcommunicationsからCSVを生成する。
 
@@ -359,7 +274,7 @@ CSVはYAMLから自動生成する。
 
 ---
 
-## 10. Terraform
+## 9. Terraform
 
 ### 基本方針
 
@@ -381,7 +296,7 @@ CSVはYAMLから自動生成する。
 
 ---
 
-## 11. GitHub Actions
+## 10. GitHub Actions
 
 Pull Request時に以下を実行する。
 
@@ -389,10 +304,8 @@ Pull Request時に以下を実行する。
 2. JSON Schema検証
 3. 追加の整合性チェック
 4. CSV生成
-5. draw.io生成
-6. SVG生成
-7. Terraform fmt
-8. Terraform validate
+5. Terraform fmt
+6. Terraform validate
 
 生成物をGitで管理する場合は、
 生成前後に差分がないことも検証する。
@@ -404,7 +317,7 @@ GitHub ActionsからAWSへアクセスする場合は、
 
 ---
 
-## 12. 実装順序
+## 11. 実装順序
 
 以下の順序で実装する。
 
@@ -418,9 +331,8 @@ GitHub ActionsからAWSへアクセスする場合は、
 ### Phase 2：ドキュメント生成
 
 - YAMLからCSVを生成
-- YAMLからdraw.ioを生成
-- AWSアイコンを表示
-- draw.ioからSVGを生成
+- YAMLを正本としてAIがdraw.ioを編集
+- draw.ioからSVGを出力
 - READMEにSVGを表示
 
 ### Phase 3：Terraform連携
@@ -439,7 +351,7 @@ GitHub ActionsからAWSへアクセスする場合は、
 
 ---
 
-## 13. Codexへの作業指示
+## 12. Codexへの作業指示
 
 このリポジトリで作業するAIエージェントは、以下のルールに従うこと。
 
@@ -456,8 +368,7 @@ GitHub ActionsからAWSへアクセスする場合は、
 - 必要以上に依存ライブラリを増やさない
 - Pythonは標準ライブラリを優先する
 - YAMLを通信要件の正本として扱う
-- 生成物に通信要件を直接記述しない
-- 再生成しても結果が安定するようにする
+- 図に記載する通信要件をYAMLと一致させる
 - スクリプトはローカルでも実行可能にする
 - シンプルで理解しやすい実装を優先する
 
@@ -479,15 +390,15 @@ GitHub ActionsからAWSへアクセスする場合は、
 
 ---
 
-## 14. 最初のゴール
+## 13. 最初のゴール
 
 初期PoCの完成条件は以下とする。
 
 - ALB → ECS → RDSの通信要件がYAMLで定義されている
 - YAMLの構文とスキーマが検証できる
 - YAMLからCSVが生成できる
-- YAMLからAWSアイコン付きdraw.ioが生成できる
-- draw.ioからSVGが生成できる
+- YAMLと整合するAWSアイコン付きdraw.ioをAIが編集できる
+- draw.ioからSVGを出力できる
 - GitHub上でSVGを表示できる
 - TerraformからYAMLを読み込める
 - Terraformの静的検証が成功する
