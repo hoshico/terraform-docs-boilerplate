@@ -34,4 +34,4 @@ terraform-docs-boilerplate
 └── .github/        # GitHub Actions・PR テンプレート
 ```
 
-詳細な方針は [AGENTS.md](AGENTS.md)、開発環境は [docs/development-environment.md](docs/development-environment.md) を参照。
+詳細な方針は [AGENTS.md](AGENTS.md)、開発環境は [docs/README.md](docs/README.md) を参照。
