@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=./communication.schema.json
 #
-# 通信要件の正本。Terraform・CSV・構成図はすべてこのファイルから生成する。
+# 設計ドキュメントの正本。CSV・構成図はこのファイルを基に作成する。
+# Terraform は生成せず、共通部分（通信と Security Group ルール）を照合する（AGENTS.md 3.2）。
 
 network:
   region: ap-northeast-1

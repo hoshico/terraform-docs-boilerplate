@@ -10,15 +10,15 @@ Terraformによるインフラ構築と、設計ドキュメントの自動生�
 
 - AWSの通信要件をGitHubで一元管理する
 - 通信要件をYAMLで定義する
-- YAMLからTerraformの設定を生成・反映する
+- YAMLとTerraformの共通部分（通信要件）を照合し、ずれを検出する
 - YAMLを正本として、AIがAWS構成図（draw.io）を編集する
 - draw.ioからSVGを出力し、GitHub上で閲覧できるようにする
 - YAMLから通信要件一覧（CSV）を生成する
 - GitHub Actionsで検証と生成処理を自動化する
 - Terraformと設計ドキュメントを同じリポジトリで管理する
 
-最終的には、通信要件の変更をPull Requestでレビューするだけで、
-Terraformと設計ドキュメントの整合性を維持できる構成を目指します。
+最終的には、Pull Requestのレビュー時に
+Terraformと設計ドキュメントのずれに気づける構成を目指します。
 
 ---
 
@@ -50,54 +50,62 @@ Terraformと設計ドキュメントの整合性を維持できる構成を目�
 
 ## 3. 基本設計方針
 
-### 3.1 YAMLをSingle Source of Truthとする
+### 3.1 YAMLとTerraformをそれぞれ正本とする
 
-通信要件はYAMLを正本として管理する。
+正本は2つあり、それぞれ管理する範囲が異なる。
 
-Terraformや設計ドキュメントに同じ通信要件を重複定義しない。
+| 正本 | 管理する範囲 |
+|---|---|
+| YAML（`requirements/communication.yaml`） | 設計ドキュメント（通信要件・構成図・CSV） |
+| Terraform（`terraform/`） | インフラの実装 |
+
+設計ドキュメント（CSV・draw.io・SVG）はYAMLから作る。
+
+TerraformはYAMLから生成せず、手で書く。
+YAMLにはUsersや外部サービスなどAWS以外の要素も含まれ、
+TerraformにはYAMLにない実装の詳細が含まれるため、両者は完全には一致しない。
+
+どちらを先に変更してもよい。
 
 ```text
-Communication Requirements (YAML)
-                |
-                +-- Validation
-                |     +-- yamllint
-                |     +-- JSON Schema
-                |
-                +-- Terraform
-                |     +-- Security Groups
-                |
-                +-- Python
-                |     +-- CSV
-                |
-                +-- AI
-                      +-- draw.io
-                             +-- SVG
+Communication Requirements (YAML)          Terraform
+        |                                      |
+        +-- Validation                         +-- fmt / validate
+        |     +-- yamllint                     |
+        |     +-- JSON Schema                  |
+        |                                      |
+        +-- Python -> CSV                      |
+        +-- AI -> draw.io -> SVG               |
+        |                                      |
+        +------- 共通部分を照合（3.2） ---------+
 ```
 
-### 3.2 TerraformはYAMLを直接参照する
+### 3.2 共通部分を照合する
 
-Terraformでは `yamldecode()` を使用する。
+YAMLとTerraformの両方に現れる情報だけを、双方向で照合する。
 
-```hcl
-locals {
-  communication = yamldecode(
-    file("${path.module}/../requirements/communication.yaml")
-  )
-}
-```
+| 区分 | 内容 |
+|---|---|
+| YAMLのみ | Users・外部サービス、label、layout、description など構成図向けの情報 |
+| 共通部分（照合する） | 通信とSecurity Groupルールの対応（通信ID・protocol・port） |
+| Terraformのみ | Security Group自体、ALBのlistener、ターゲットグループ、ルートテーブル、IAMなど実装の詳細 |
 
-YAMLの通信要件をもとに、必要なSecurity Groupルールなどを作成する。
+照合の結果はレポートとして出力し、原則としてCIを失敗させない。
+ずれが見つかった場合、YAMLとTerraformのどちらを直すかは人が判断する。
 
-ただし、すべての通信要件がSecurity Groupで表現できるわけではない。
+報告する内容：
 
-例えば以下は個別に扱う。
+- 一致している通信
+- protocol / port の不一致
+- YAMLのみにある通信（Terraform未対応）
+- Terraformのみにある通信IDなしのSecurity Groupルール（YAML未反映）
 
-- Security Groupで制御する通信
-- VPC Endpointを利用する通信
-- 外部SaaSへのHTTPS通信
-- SAML / OIDCによる認証通信
+YAMLに存在しない通信IDがTerraformに書かれている場合は、
+タイポや削除漏れの可能性が高いためエラーとしてよい。
 
-通信要件とAWSリソースの対応を明確にすること。
+Security Group以外で制御する通信（VPC Endpoint、外部SaaS、SAML / OIDCなど）や、
+CIDR・リソース配置・listener・ルートなど照合対象外の要素は、
+Pull Requestのレビューで確認する。
 
 ### 3.3 設計ドキュメントを管理する
 
@@ -207,6 +215,7 @@ communications:
 - 通信目的をdescriptionに記載する
 - 必要に応じて環境情報を追加できる設計にする
 - Terraform固有の値と論理的な通信要件を可能な限り分離する
+- Security Groupは定義しない（Security Groupは通信を実現する手段であり、Terraform側で管理する）
 
 YAMLの構造はPoCで検証しながら改善してよい。
 
@@ -278,11 +287,42 @@ CSVはYAMLから自動生成する。
 
 ### 基本方針
 
-- TerraformはYAMLを `yamldecode()` で読み込む
-- 通信要件からSecurity Groupルールを生成する
-- `for_each` を利用し、通信IDを安定したキーとして扱う
-- AWSリソースIDとYAMLの論理IDの対応を明確にする
+- TerraformはYAMLから生成せず、手で書く（YAMLを `yamldecode()` で読み込まない）
+- YAMLとの照合（3.2）ができるよう、以下の記述ルールに従う
 - Terraformの変更内容はplanで確認する
+
+### YAMLとの照合のための記述ルール
+
+YAMLのリソース1つにつき、Security Groupを1つ作る。
+Security Groupのリソース名はYAMLのリソースIDに合わせる（`-` は `_` に置き換える）。
+
+| YAML | Terraform |
+|---|---|
+| `resources.alb` | `aws_security_group.alb` |
+| `resources.batch-worker`（例） | `aws_security_group.batch_worker` |
+
+Security Groupルールは `aws_vpc_security_group_ingress_rule` / `aws_vpc_security_group_egress_rule` で1ルールずつ書く。
+`aws_security_group` の中に `ingress {}` / `egress {}` を書かない。
+
+YAMLの通信に対応するルールには、通信IDを `CommunicationId` タグで記載する。
+1つの通信は、宛先側のingressと送信元側のegressの2ルールに対応する。
+
+```hcl
+resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
+  security_group_id            = aws_security_group.ecs.id
+  referenced_security_group_id = aws_security_group.alb.id
+  ip_protocol                  = "tcp"
+  from_port                    = 3000
+  to_port                      = 3000
+
+  tags = {
+    CommunicationId = "alb-to-ecs"
+  }
+}
+```
+
+Security Groupを持たない相手（`users`、`aws-services` などVPC外のリソース）は、
+`cidr_ipv4` で表す。
 
 ### 注意点
 
@@ -306,6 +346,7 @@ Pull Request時に以下を実行する。
 4. CSV生成
 5. Terraform fmt
 6. Terraform validate
+7. YAMLとTerraformの照合レポート（3.2。原則としてCIを失敗させない）
 
 生成物をGitで管理する場合は、
 生成前後に差分がないことも検証する。
@@ -337,8 +378,8 @@ GitHub ActionsからAWSへアクセスする場合は、
 
 ### Phase 3：Terraform連携
 
-- TerraformでYAMLを読み込む
-- 通信要件とSecurity Groupを対応させる
+- 記述ルール（9章）に従ってSecurity Groupを手で書く
+- YAMLとTerraformの照合スクリプトを作成する
 - Terraform fmt / validateを実行
 - Terraform planで変更内容を確認
 
@@ -367,8 +408,10 @@ GitHub ActionsからAWSへアクセスする場合は、
 - TypeScriptを使用しない
 - 必要以上に依存ライブラリを増やさない
 - Pythonは標準ライブラリを優先する
-- YAMLを通信要件の正本として扱う
+- YAMLを設計ドキュメントの正本、Terraformをインフラの正本として扱う
 - 図に記載する通信要件をYAMLと一致させる
+- Security Groupルールを変更した場合は、YAMLのcommunicationsへの反映要否を確認する
+- YAMLのcommunicationsを変更した場合は、Terraformへの反映要否を確認する
 - スクリプトはローカルでも実行可能にする
 - シンプルで理解しやすい実装を優先する
 
@@ -386,7 +429,7 @@ GitHub ActionsからAWSへアクセスする場合は、
 - ユーザーの許可なくTerraform applyを実行しない
 - AWS認証情報やシークレットをリポジトリに保存しない
 - 既存ファイルを理由なく削除しない
-- YAMLとTerraformに通信要件を二重管理しない
+- YAMLからTerraformを生成しない（TerraformでYAMLを読み込まない）
 
 ---
 
@@ -400,7 +443,8 @@ GitHub ActionsからAWSへアクセスする場合は、
 - YAMLと整合するAWSアイコン付きdraw.ioをAIが編集できる
 - draw.ioからSVGを出力できる
 - GitHub上でSVGを表示できる
-- TerraformからYAMLを読み込める
+- 記述ルールに従ったTerraformでSecurity Groupが定義されている
+- YAMLとTerraformの照合レポートを出力できる
 - Terraformの静的検証が成功する
 
 まずは小さく動作する構成を完成させ、
