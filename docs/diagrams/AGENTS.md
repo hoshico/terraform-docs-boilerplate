@@ -9,7 +9,7 @@
 矛盾がある場合は、次の順で判断する。
 
 1. ユーザーが明示した要件とレビュー時の合意
-2. `requirements/communication.yaml` のリソースと通信要件
+2. `specifications/communication.yaml` のリソースと通信要件
 3. 本ファイル
 4. プロジェクト Skill と公式 draw.io Skill / MCP の一般ルール
 
@@ -25,6 +25,8 @@ YAML にないリソース、通信、ポート、可用性構成を推測で図
   境界だけをコンテナで表現する。
 - コンテナは入れ子関係が分かる配置とし、内部リソースをコンテナの子要素にする。
 - サービスアイコンはリソース種別と名称の両方が分かるようラベルを付ける。
+- subnet を持たないリソースは `scope` に従う。`regional` は Region 内・VPC 外、`external`
+  は Region 外に置く。`scope` がない場合は `external` として扱う。
 
 ## 3. レイアウトと通信
 

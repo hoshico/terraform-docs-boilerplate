@@ -86,6 +86,11 @@
           "$ref": "#/$defs/logicalId",
           "description": "配置先サブネットの id。省略時は VPC 外"
         },
+        "scope": {
+          "enum": ["regional", "external"],
+          "default": "external",
+          "description": "subnet を持たないリソースの配置範囲。regional は Region 内・VPC 外、external は Region 外。省略時は external"
+        },
         "layout": {
           "enum": ["single", "span", "per_az", "primary_standby"],
           "description": "AZ への配置方法。省略時は single"

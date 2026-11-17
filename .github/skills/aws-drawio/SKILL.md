@@ -6,7 +6,7 @@ description: Create or update accurate AWS architecture and network diagrams as 
 # AWS draw.io diagrams
 
 Create native, editable `.drawio` diagrams for AWS architectures. Treat the
-repository's requirements as the source of truth; never invent components,
+repository's specifications as the source of truth; never invent components,
 network paths, ports, or high-availability topology to make a diagram look
 more complete.
 

@@ -1,6 +1,6 @@
 # diagrams
 
-`requirements/communication.yaml` を正本とする構成図（draw.io / SVG）を配置するディレクトリ。
+`specifications/communication.yaml` を正本とする構成図（draw.io / SVG）を配置するディレクトリ。
 
 `communication.drawio` は AI が YAML を参照して編集する。編集時は必ず
 [AGENTS.md](AGENTS.md) の AWS 構成図の規約に従う。

@@ -56,7 +56,7 @@ Terraformと設計ドキュメントのずれに気づける構成を目指し�
 
 | 正本 | 管理する範囲 |
 |---|---|
-| YAML（`requirements/communication.yaml`） | 設計ドキュメント（通信要件・構成図・CSV） |
+| YAML（`specifications/communication.yaml`） | 設計ドキュメント（通信要件・構成図・CSV） |
 | Terraform（`terraform/`） | インフラの実装 |
 
 設計ドキュメント（CSV・draw.io・SVG）はYAMLから作る。
@@ -86,7 +86,7 @@ YAMLとTerraformの両方に現れる情報だけを、双方向で照合する�
 
 | 区分 | 内容 |
 |---|---|
-| YAMLのみ | Users・外部サービス、label、layout、description など構成図向けの情報 |
+| YAMLのみ | Users・外部サービス、label、layout、scope、description など構成図向けの情報 |
 | 共通部分（照合する） | 通信とSecurity Groupルールの対応（通信ID・protocol・port） |
 | Terraformのみ | Security Group自体、ALBのlistener、ターゲットグループ、ルートテーブル、IAMなど実装の詳細 |
 
@@ -128,7 +128,7 @@ CSV は自動生成するため直接編集しない。draw.io 図は `docs/diag
 ├── AGENTS.md
 ├── README.md
 │
-├── requirements/
+├── specifications/
 │   ├── communication.yaml
 │   └── communication.schema.json
 │
@@ -214,6 +214,7 @@ communications:
 - protocolとportを明示する
 - 通信目的をdescriptionに記載する
 - 必要に応じて環境情報を追加できる設計にする
+- subnet を持たないリソースには、必要に応じて `scope` を指定する。`regional` は Region 内・VPC 外、`external` は Region 外を表し、省略時は `external` とする
 - Terraform固有の値と論理的な通信要件を可能な限り分離する
 - Security Groupは定義しない（Security Groupは通信を実現する手段であり、Terraform側で管理する）
 
@@ -254,7 +255,7 @@ JSON Schemaだけでは検証が難しい項目については、
 
 ## 7. draw.io 編集と SVG 出力
 
-`requirements/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。Python スクリプトで draw.io XML を自動生成しない。
+`specifications/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。Python スクリプトで draw.io XML を自動生成しない。
 
 AI は `docs/diagrams/AGENTS.md` の規約に従い、AWS4 アイコン、配色、レイアウト、通信線のスタイルを維持する。YAML にないリソースや通信を図へ追加しない。
 

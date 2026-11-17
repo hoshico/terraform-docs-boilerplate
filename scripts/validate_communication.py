@@ -15,7 +15,7 @@ from pathlib import Path
 
 import yaml
 
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "requirements" / "communication.yaml"
+DEFAULT_PATH = Path(__file__).resolve().parent.parent / "specifications" / "communication.yaml"
 
 
 def validate_network(data: dict) -> list[str]:
@@ -43,6 +43,8 @@ def validate_network(data: dict) -> list[str]:
             errors.append(f"resource {resource_id}: subnet '{subnet}' が network.subnets に定義されていません")
         if subnet is None and "layout" in resource:
             errors.append(f"resource {resource_id}: layout を指定する場合は subnet が必要です")
+        if subnet is not None and "scope" in resource:
+            errors.append(f"resource {resource_id}: subnet を指定する場合は scope を指定できません")
         if layout == "primary_standby" and az_count < 2:
             errors.append(f"resource {resource_id}: primary_standby には 2 つ以上の AZ が必要です")
 

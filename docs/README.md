@@ -78,7 +78,7 @@ package = false
 ```sh
 uv sync                                   # 依存のインストール（dev グループ含む）
 uv run python scripts/generate_csv.py     # スクリプト実行
-uv run yamllint requirements/
+uv run yamllint specifications/
 ```
 
 - `uv run` を使うことで、OS ごとの venv 有効化方法（`activate` / `Activate.ps1`）の違いを吸収する
@@ -117,7 +117,7 @@ uv run yamllint requirements/
 
 ### 5. draw.io
 
-draw.io は mise / uv で管理できず、バージョンにより SVG 出力が変わる可能性がある。構成図はスクリプトで生成せず、AI が `requirements/communication.yaml` を正本として編集する。編集規約は `docs/diagrams/AGENTS.md` を参照する。
+draw.io は mise / uv で管理できず、バージョンにより SVG 出力が変わる可能性がある。構成図はスクリプトで生成せず、AI が `specifications/communication.yaml` を正本として編集する。編集規約は `docs/diagrams/AGENTS.md` を参照する。
 
 - SVG の生成はローカルで行い、変更内容をレビューする
 - ローカルで SVG を確認する場合は、Mac で確認済みのバージョン（32.4.1）を使用する

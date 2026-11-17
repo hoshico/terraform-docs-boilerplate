@@ -28,7 +28,8 @@ network:
       type: private
       cidrs: [10.0.20.0/24, 10.0.21.0/24]
 
-# subnet を省略したリソースは VPC 外として扱う（Users・インターネット上のサービスなど）
+# subnet を省略したリソースは VPC 外として扱う。
+# scope: regional は Region 内・VPC 外、scope: external（省略時）は Region 外を表す。
 # layout:
 #   single          : 先頭の AZ に 1 つ配置（省略時）
 #   span            : AZ をまたいで 1 つ配置（ALB など）
@@ -42,6 +43,7 @@ resources:
   aws-services:
     type: internet
     label: AWS services (ECR / CloudWatch Logs)
+    scope: regional
 
   alb:
     type: aws_alb

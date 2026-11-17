@@ -4,13 +4,13 @@ AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント
 
 ## 通信構成図
 
-`requirements/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。編集規約は [docs/diagrams/AGENTS.md](docs/diagrams/AGENTS.md) を参照する。
+`specifications/communication.yaml` を正本として、AI が `docs/diagrams/communication.drawio` を編集する。編集規約は [docs/diagrams/AGENTS.md](docs/diagrams/AGENTS.md) を参照する。
 
 ![AWS Communication Diagram](docs/diagrams/communication.svg)
 
 ## 通信要件一覧
 
-`requirements/communication.yaml` から自動生成している。CSV 版：[docs/tables/communication.csv](docs/tables/communication.csv)
+`specifications/communication.yaml` から自動生成している。CSV 版：[docs/tables/communication.csv](docs/tables/communication.csv)
 
 <!-- BEGIN: communication-table (自動生成のため直接編集しない) -->
 | ID | Source | Destination | Via | Protocol | Port | Description |
@@ -25,7 +25,7 @@ AWS の通信要件を YAML で管理し、Terraform と設計ドキュメント
 
 ```
 terraform-docs-boilerplate
-├── requirements/   # 通信要件 YAML（正本）と JSON Schema
+├── specifications/ # 通信要件 YAML（正本）と JSON Schema
 ├── terraform/      # Terraform コード
 ├── scripts/        # 検証・生成用 Python スクリプト
 ├── docs/           # 設計書・運用手順書
