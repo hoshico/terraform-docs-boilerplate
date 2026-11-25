@@ -6,27 +6,27 @@
 network:
   region: ap-northeast-1
   vpc:
-    label: VPC
-    cidr: 10.0.0.0/16
+    label: BimcimVPC (bimcim-pro-vpc)
+    cidr: 10.20.0.0/18
   availability_zones:
     - ap-northeast-1a
     - ap-northeast-1c
   # 構成図では上から順に並べる。cidrs は availability_zones と同じ順序で指定する
   subnets:
+    - id: firewall
+      label: Firewall subnet
+      type: public
+      cidrs: [10.20.11.0/24, 10.20.12.0/24]
+
     - id: public
       label: Public subnet
       type: public
-      cidrs: [10.0.0.0/24, 10.0.1.0/24]
+      cidrs: [10.20.1.0/24, 10.20.2.0/24]
 
-    - id: private-app
-      label: Private subnet (App)
+    - id: private
+      label: Private subnet
       type: private
-      cidrs: [10.0.10.0/24, 10.0.11.0/24]
-
-    - id: private-db
-      label: Private subnet (DB)
-      type: private
-      cidrs: [10.0.20.0/24, 10.0.21.0/24]
+      cidrs: [10.20.8.0/24, 10.20.9.0/24]
 
 # subnet を省略したリソースは VPC 外として扱う。
 # scope: regional は Region 内・VPC 外、scope: external（省略時）は Region 外を表す。
@@ -40,10 +40,20 @@ resources:
     type: users
     label: Users
 
-  aws-services:
+  internet:
     type: internet
-    label: AWS services (ECR / CloudWatch Logs)
+    label: Internet (AWS APIs / Autodesk Forge / Garoon / Webex)
+
+  s3:
+    type: aws_s3
+    label: Amazon S3
     scope: regional
+
+  network-firewall:
+    type: aws_network_firewall
+    label: Network Firewall endpoint
+    subnet: firewall
+    layout: per_az
 
   alb:
     type: aws_alb
@@ -57,25 +67,45 @@ resources:
     subnet: public
     layout: per_az
 
+  web-ap:
+    type: aws_ec2
+    label: Web/AP (EC2)
+    subnet: private
+    layout: per_az
+
   ecs:
     type: aws_ecs
     label: ECS Service (Fargate)
-    subnet: private-app
+    subnet: private
     layout: per_az
 
   rds:
     type: aws_rds
-    label: RDS for PostgreSQL
-    subnet: private-db
+    label: RDS for PostgreSQL (Multi-AZ)
+    subnet: private
     layout: primary_standby
 
+  efs:
+    type: aws_efs
+    label: Amazon EFS
+    subnet: private
+    layout: span
+
+# インターネットとの通信は、すべて Network Firewall endpoint を経由する（ルートテーブルで制御）。
 communications:
   - id: users-to-alb
     source: users
     destination: alb
     protocol: tcp
     port: 443
-    description: 利用者からALBへのHTTPS通信
+    description: 利用者からALBへのHTTPS通信（Network Firewall経由）
+
+  - id: alb-to-web-ap
+    source: alb
+    destination: web-ap
+    protocol: tcp
+    port: 80
+    description: ALBからWeb/APサーバーへのHTTP通信
 
   - id: alb-to-ecs
     source: alb
@@ -84,6 +114,13 @@ communications:
     port: 3000
     description: ALBからECSへのアプリケーション通信
 
+  - id: web-ap-to-rds
+    source: web-ap
+    destination: rds
+    protocol: tcp
+    port: 5432
+    description: Web/APサーバーからRDSへのデータベース接続
+
   - id: ecs-to-rds
     source: ecs
     destination: rds
@@ -91,11 +128,48 @@ communications:
     port: 5432
     description: ECSからRDSへのデータベース接続
 
-  # via: 経由するリソース。NAT Gateway など、Security Group で制御しない中継点を指定する
-  - id: ecs-to-aws-services
+  - id: web-ap-to-efs
+    source: web-ap
+    destination: efs
+    protocol: tcp
+    port: 2049
+    description: Web/APサーバーからEFSへのNFS接続
+
+  - id: ecs-to-efs
     source: ecs
-    destination: aws-services
+    destination: efs
+    protocol: tcp
+    port: 2049
+    description: ECSからEFSへのNFS接続
+
+  # via: 経由するリソース。NAT Gateway など、Security Group で制御しない中継点を指定する
+  - id: web-ap-to-internet
+    source: web-ap
+    destination: internet
     via: nat
     protocol: tcp
     port: 443
-    description: ECSからNAT Gateway経由でECR・CloudWatch LogsへのHTTPS通信
+    description: Web/APサーバーからNAT Gateway・Network Firewall経由でSystems Manager・Garoon・WebexへのHTTPS通信
+
+  - id: ecs-to-internet
+    source: ecs
+    destination: internet
+    via: nat
+    protocol: tcp
+    port: 443
+    description: ECSからNAT Gateway・Network Firewall経由でECR・CloudWatch Logs・Autodesk ForgeへのHTTPS通信
+
+  # S3 Gateway Endpoint はサブネットを持たないため via に指定できない。ルートテーブルで経由させる
+  - id: web-ap-to-s3
+    source: web-ap
+    destination: s3
+    protocol: tcp
+    port: 443
+    description: Web/APサーバーからS3 Gateway Endpoint経由でS3へのHTTPS通信
+
+  - id: ecs-to-s3
+    source: ecs
+    destination: s3
+    protocol: tcp
+    port: 443
+    description: ECSからS3 Gateway Endpoint経由でS3へのHTTPS通信（ECRイメージレイヤー取得を含む）
