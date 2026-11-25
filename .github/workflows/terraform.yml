@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - "terraform/**"
+      - ".github/workflows/terraform.yml"
   push:
     branches: [main]
     paths:
       - "terraform/**"
+      - ".github/workflows/terraform.yml"
 
 jobs:
   validate:
@@ -17,7 +19,10 @@ jobs:
         working-directory: terraform
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      # mise.toml で固定した Terraform のバージョンを使う（ローカルと揃える）
+      - uses: jdx/mise-action@v2
+        with:
+          install_args: terraform
       - run: terraform fmt -check -recursive
       - run: terraform init -backend=false
       - run: terraform validate
