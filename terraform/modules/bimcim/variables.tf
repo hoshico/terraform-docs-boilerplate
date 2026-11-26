@@ -1,35 +1,11 @@
 variable "region" {
-  description = "AWS リージョン"
+  description = "AWS リージョン（provider と同じ値を指定する）"
   type        = string
-  default     = "ap-northeast-1"
 }
 
 variable "name_prefix" {
   description = "リソース名の接頭辞"
   type        = string
-  default     = "bimcim-pro"
-}
-
-# ---------------------------------------------------------------
-# AWS Emulator
-# ---------------------------------------------------------------
-
-variable "use_emulator" {
-  description = "true のとき、AWS ではなくローカルの AWS Emulator に対して plan / apply する"
-  type        = bool
-  default     = false
-}
-
-variable "emulator_endpoint" {
-  description = "AWS Emulator のエンドポイント"
-  type        = string
-  default     = "https://127.0.0.1:9297"
-}
-
-variable "emulator_ca_bundle" {
-  description = "AWS Emulator の自己署名証明書（CA バンドル）のパス"
-  type        = string
-  default     = "~/.aws/emulator/9297/ca.pem"
 }
 
 # ---------------------------------------------------------------

@@ -14,9 +14,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform
+    strategy:
+      matrix:
+        environment: [emulator]
     steps:
       - uses: actions/checkout@v4
       # mise.toml で固定した Terraform のバージョンを使う（ローカルと揃える）
@@ -24,5 +24,8 @@ jobs:
         with:
           install_args: terraform
       - run: terraform fmt -check -recursive
+        working-directory: terraform
       - run: terraform init -backend=false
+        working-directory: terraform/environments/${{ matrix.environment }}
       - run: terraform validate
+        working-directory: terraform/environments/${{ matrix.environment }}
